@@ -2,7 +2,9 @@ import argparse
 import base64
 from datetime import datetime
 import os
+import sys
 import shutil
+import cv2
 
 import numpy as np
 import socketio
@@ -21,6 +23,22 @@ app = Flask(__name__)
 model = None
 prev_image_array = None
 
+steers = [0.0,0.0]
+
+def steer_smoother(in_steer):
+    old_change_rate = steers[0]-steers[1]
+    new_change_rate = in_steer - steers[0]
+    if new_change_rate - old_change_rate < 0.5*in_steer:
+        steers[1] = steers[0]
+        steers[0] = in_steer
+    else:
+        print("smoothing from {} to {}".format(in_steer, in_steer*.5))
+        steers[1] = steers[0]
+        steers[0] = in_steer*.5
+    return(steers[0])
+
+
+clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
 
 class SimplePIController:
     def __init__(self, Kp, Ki):
@@ -44,7 +62,7 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 9
+set_speed = 20
 controller.set_desired(set_speed)
 
 
@@ -60,12 +78,25 @@ def telemetry(sid, data):
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
-        image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        image2 = np.asarray(image)
+        ## next line by tony
+        image_array = cv2.cvtColor(image2, cv2.COLOR_RGB2YUV)
+        y,u,v = cv2.split(image_array)
+        cl_y = clahe.apply(y)
+        image_array = cv2.merge((cl_y,u,v))
 
+        #image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+        #print("image_array.shape = {} image_array[None, :, :, :].shape = {} "
+        #    .format(image_array.shape, image_array[None, :, :, :].shape))
+        #image_array = np.asarray(image_array)
+
+        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        #steering_angle = steer_smoother(steering_angle)
         throttle = controller.update(float(speed))
 
-        print(steering_angle, throttle)
+        sys.stdout.write("steering angle:{0:.3f}   \tthrottle: {0:.2f} \r".format(steering_angle*90/3.14*0.872, throttle))
+        sys.stdout.flush()
+
         send_control(steering_angle, throttle)
 
         # save frame
