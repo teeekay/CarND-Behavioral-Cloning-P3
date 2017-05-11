@@ -191,7 +191,7 @@ model.compile(loss='mse', optimizer=Adam(lr=5e-5,decay=0.020))
 print("samples_per_epoch comes out as {}".format(len(train_samples)))
 print("nb_val_samples comes out as {}".format(len(validation_samples)))
 
-checkpoint = ModelCheckpoint('model5{epoch:02d}.h5')
+checkpoint = ModelCheckpoint('model6{epoch:02d}.h5')
 
 #history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples),
 #    validation_data=validation_generator, nb_val_samples=len(validation_samples),
@@ -199,7 +199,7 @@ checkpoint = ModelCheckpoint('model5{epoch:02d}.h5')
 # history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples),
 #    validation_data=validation_generator, nb_val_samples=len(validation_samples),
 #    nb_epoch=10, callbacks=[checkpoint], verbose=2)
-history = model.fit(X_train, y_train, batch_size=128, nb_epoch=20, callbacks=[checkpoint], validation_data=(X_val,y_val), shuffle=True)
+history = model.fit(X_train, y_train, batch_size=128, nb_epoch=25, callbacks=[checkpoint], validation_data=(X_val,y_val), shuffle=True)
 
 
 print(history.history.keys())
@@ -212,13 +212,13 @@ plt.xlabel('epoch')
 plt.legend(['training set', 'validation set'], loc='upper right')
 plt.show()
 
-model.save('./model5.h5')
+model.save('./model6.h5')
 #model.save
 print("Model saved")
 #model.get_weights()
 #print(validation_samples.shape)
 shuffle(validation_samples)
-tests = validation_samples[0:9]
+tests = validation_samples[0:20]
 #tests = np.random.choice(validation_samples, 20)
 images =[]
 angles = []
@@ -255,7 +255,6 @@ for i in range(len(steers)):
     cv2.line(img,(int(w/2),int(h)),(int(w/2+angles[i]*w/4),int(h/2)),(0,255,0),thickness=4)
     cv2.line(img,(int(w/2),int(h)),(int(w/2+steers[i]*w/4),int(h/2)),(0,0,255),thickness=4)
     displayCV2(img)
-    cv2.imwrite("./test"+str(i)+".png", img)
-
+    cv2.imwrite("./test6_"+str(i)+".png", img)
 
 exit()

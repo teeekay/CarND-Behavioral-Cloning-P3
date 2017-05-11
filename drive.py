@@ -62,7 +62,7 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 20
+set_speed = 25
 controller.set_desired(set_speed)
 
 
@@ -77,18 +77,17 @@ def telemetry(sid, data):
         speed = data["speed"]
         # The current image from the center camera of the car
         imgString = data["image"]
-        image = Image.open(BytesIO(base64.b64decode(imgString)))
-        image2 = np.asarray(image)
+        pil_image = Image.open(BytesIO(base64.b64decode(imgString)))
+        image2 = np.asarray(pil_image)
         ## next line by tony
         image_array = cv2.cvtColor(image2, cv2.COLOR_RGB2YUV)
         y,u,v = cv2.split(image_array)
         cl_y = clahe.apply(y)
         image_array = cv2.merge((cl_y,u,v))
-
-        #image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
-        #print("image_array.shape = {} image_array[None, :, :, :].shape = {} "
-        #    .format(image_array.shape, image_array[None, :, :, :].shape))
-        #image_array = np.asarray(image_array)
+        image_array[:,:,1:2] = 0
+        # to write whats going to model to video
+        cv_image = image_array[70:140,10:310,:]
+        pil_image = Image.fromarray(cv_image)
 
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
         #steering_angle = steer_smoother(steering_angle)
@@ -103,7 +102,7 @@ def telemetry(sid, data):
         if args.image_folder != '':
             timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
             image_filename = os.path.join(args.image_folder, timestamp)
-            image.save('{}.jpg'.format(image_filename))
+            pil_image.save('{}.jpg'.format(image_filename))
     else:
         # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
