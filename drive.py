@@ -5,6 +5,7 @@ import os
 import sys
 import shutil
 import cv2
+import math
 
 import numpy as np
 import socketio
@@ -23,20 +24,9 @@ app = Flask(__name__)
 model = None
 prev_image_array = None
 
-steers = [0.0,0.0]
-
-def steer_smoother(in_steer):
-    old_change_rate = steers[0]-steers[1]
-    new_change_rate = in_steer - steers[0]
-    if new_change_rate - old_change_rate < 0.5*in_steer:
-        steers[1] = steers[0]
-        steers[0] = in_steer
-    else:
-        print("smoothing from {} to {}".format(in_steer, in_steer*.5))
-        steers[1] = steers[0]
-        steers[0] = in_steer*.5
-    return(steers[0])
-
+#use_S_only = True
+use_Y_only = False
+reverse_throttle = False # Try braking to prevent oversteer
 
 clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
 
@@ -62,7 +52,7 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 25
+set_speed = 20
 controller.set_desired(set_speed)
 
 
@@ -83,18 +73,40 @@ def telemetry(sid, data):
         image_array = cv2.cvtColor(image2, cv2.COLOR_RGB2YUV)
         y,u,v = cv2.split(image_array)
         cl_y = clahe.apply(y)
-        image_array = cv2.merge((cl_y,u,v))
-        image_array[:,:,1:2] = 0
+        if use_Y_only == True:
+            image_array = np.reshape(cl_y,(160,320,1))
+            #print(image_array.shape)
+        else:
+            image_array = cv2.merge((cl_y,u,v))
         # to write whats going to model to video
         cv_image = image_array[70:140,10:310,:]
-        pil_image = Image.fromarray(cv_image)
 
+        #if use_Y_only == True:
+        #    cv_image2 = np.reshape(cv_image,(70,310))
+        #    cv_image = cv2.cvtColor(cv_image2, cv2.COLOR_GRAY2BGR)
+
+        #pil_image = Image.fromarray(cv_image)
+        #print("About to predict")
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+
         #steering_angle = steer_smoother(steering_angle)
         throttle = controller.update(float(speed))
 
-        sys.stdout.write("steering angle:{0:.3f}   \tthrottle: {0:.2f} \r".format(steering_angle*90/3.14*0.872, throttle))
+        if abs(steering_angle) > 0.1:
+
+            adjusted_angle = steering_angle/(abs(steering_angle)) * (0.1 + ((abs(steering_angle) -.1) * .75 * math.cos(steering_angle*math.pi/4.0)))
+            #adjusted_angle = steering_angle/(abs(steering_angle)) * (0.1 + ((steering_angle -.1) * .6 * math.cos(steering_angle*math.pi/2.0)))
+            print("adjusting steering from {} to {}".format(steering_angle, adjusted_angle))
+            steering_angle = adjusted_angle
+
+        if abs(steering_angle)>0.25 and float(speed)>24.0 and reverse_throttle== True:
+            throttle = -15
+            print("slowing down!")
+
+
+        sys.stdout.write("steering angle:{0:02.3f}   \t\tthrottle: {0:.2f} \r".format(steering_angle*90/3.14*0.872, throttle))
         sys.stdout.flush()
+
 
         send_control(steering_angle, throttle)
 
