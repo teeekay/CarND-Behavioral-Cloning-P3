@@ -103,21 +103,32 @@ My model consists of a slightly modified version of NVIDIA's model convolution n
 
 The model contains dropout layers in both the final convolutional layer and the 2nd and 3rd fully connected layers to help prevent overfitting (model.py lines 84, 95, 100). 
 
+
 #### 3. Model parameter tuning
+
 
 An Adam optimizer was used with the model.  The initial learning rate and decay rate were adjusted to 0.00005 and 2% respectively to produce best results based on previous test runs. (model.py line 237).
 
 Callbacks were used at the end of each epoch to checkpoint the model, and to see if the training should be exited early (if evidence of overfitting).  Based on observing good training performance once the model and training data were set up, the early exit was configured to occur if validation loss decreased by less than 0.002 between epochs.
 
-<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Kerasrun.png?raw=true" alt="Udacity Simulator ready for training" width=600>
+---
+
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Kerasrun.png?raw=true" alt="Udacity Simulator ready for training" width=400>
 
 <u><i>Figure 2. Graph of Mean Squared Loss for Training and Validation Sets Suggests good Fit</i></u>
+
+---
 
 
 #### 4. Appropriate training data
 
-<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Track1center.png?raw=true" alt="Right, Center, and Left views of drive down down center line on Track 1" width=600>
+---
 
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Track1center.jpg?raw=true" alt="Right, Center, and Left views of drive down down center line on Track 1" width=700>
+
+<u><i>Figure 3. Right, Center, and Left views of drive down down center line on Track 1 </i></u>
+
+---
 
 I initially attempted to use training data produced by driving around track 1 twice counterclockwise, and once clockwise, trying to stay at the center of the road. 
 
@@ -125,8 +136,14 @@ I produced a set of data for areas of Track 1 where the car was steered away fro
 
 I also produced a set of data driving around track 2 (jungle track) several times in both directions at the center of the lane.
 
-<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Trainingexample.png?raw=true" alt="Driving down center line on Track 2" width=300>
+---
 
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Trainingexample.jpg?raw=true" alt="Driving down center line on Track 2" width=300>
+
+
+<u><i>Figure 4. Driving down center line on Track 2 </i></u>
+
+---
 
 ### Model Architecture and Training Strategy
 
@@ -158,9 +175,22 @@ I worked on implementing a queue-like data structure to hold a recent history of
 
 The car was able to drive autonomously around Track 1 at full throttle (30 mph speed).  However, when I tried to record this feat, the car crashed in areas where it had previously navigated successfully.  I hypothesized that the saving of the image files was increasing the delay between steering predictions.  I modified the drive.py code to save the images into a list, and to save the images after the drive had been completed.  With this modification the car drove successfully around the track in both directions at full seed autonomously.
 
-I realized about this point that the routine I was using to convert the images in drive.py was assuming a BGR input, whereas from the PIL Image fuction it would be in RGB.  I switched the routine to the correct way, but this resulted in crashes at top speed on Track 1 in places where it performed ok with the wrong routine.  The model no longer tried to avoid shadows on Track 1 which had been the case.  I put the code back to the way it had been previously as it was working that way and the deadline was near.
+I realized about this point that the routine I was using to convert the images in drive.py was assuming a BGR input, whereas from the PIL Image function it would be in RGB.  I switched the routine to the correct way, but this resulted in crashes at top speed on Track 1 in places where it performed ok with the wrong routine.  The model no longer tried to avoid shadows on Track 1 which had been the case.  I put the code back to the way it had been previously as it was working that way and the deadline was near.
 
 On track 2 the model moves toward curved trees or fence posts that are straight ahead in a curve, but may look like road features.  It is also fooled by other tracks it can see straight ahead even though the track is veering to the right or left.  To attempt make the model work on track 2, my next course of action would be to investigate if 
 a) other image processing methods -possibly hough/sobel filters could be used in conjunction with the model to better delineate road boundaries and discriminate between road boundaries and other objects like trees and fence posts; b) investigate image transforms to eliminate the effect of shade in Track 2.
 
-### Visualization of MOdel performance
+### Quick Check Visualization of Model Performance
+
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/last_model_15.png?raw=true"  width=300>
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/last_model_16.png?raw=true"  width=300>
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/last_model_17.png?raw=true"  width=300>
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/last_model_18.png?raw=true"  width=300>
+
+
+<u><i>Figure 5. Images Used by Model with Predicted (Red) and Actual (Green) Steering Angles</i></u>
+
+---
+
+
+Code on lines 281 to 311 of model.py was used after a training run was completed to generate images demonstrating how well the predictions produced by the model compared to the input image, and the actual steering angle recorded for that image.
