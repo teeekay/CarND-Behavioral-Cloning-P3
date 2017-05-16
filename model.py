@@ -6,6 +6,11 @@ from keras.callbacks import ModelCheckpoint, Callback, EarlyStopping
 from keras.optimizers import Adam
 from keras.layers.advanced_activations import ELU
 from keras import __version__ as keras_version
+#from keras.utils import plot_model
+from keras.utils.visualize_util import plot
+import pydot
+import graphviz
+
 
 import sklearn
 from sklearn.model_selection import train_test_split
@@ -105,6 +110,9 @@ model.add(Dense(1))
 ''' Print out a summary of the Model '''
 model.summary()
 
+plot(model, to_file='model.png', show_shapes=True, show_layer_names=True)
+
+exit()
 ###############################################################################
 '''
 load in the training data

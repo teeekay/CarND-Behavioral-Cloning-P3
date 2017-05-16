@@ -22,24 +22,37 @@ from keras import __version__ as keras_version
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
-prev_image_array = None
+# prev_image_array = None
 
 #use_S_only = True
-use_RGB = False
-use_Y_only = False
+use_RGB = False # use RGB images
+use_Y_only = False # use only Y channel of YUV
 reverse_throttle = False # Try braking to prevent oversteer
 moderate_steer = False # try moderating steering to prevent oversteer
-average_steer = True # try to reduce wobbles
-straightening_factor = 1.0 #
+average_steer = True # try to smooth steering
 
 
+'''
+set up global clahe so that it doesn't get repeated, and variables remain constant
+'''
 clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(32,32))
+
+'''
+initialize lists to store recorded data in - this prevents recording from affecting
+performance during autonomous driving, these can be saved when drive is complete.
+'''
 filenames = []
 rec_images = []
 
+# gloabal params for moderating steering
 steer_history = [0.0,0.0,0.0,0.0,0.0,0.0]
-steer_mod_weights = [1.3,2.0,0.6,0.3,0.15,0.08]
-
+steer_mod_weights = [1.4,2.0,0.6,0.3,0.15,0.08]
+# increasing this should reduce steering angles - this could result in leaving the track on corners
+straightening_factor = 1.0
+'''
+steer_mod
+subroutine to try to moderate steering variability
+'''
 def steer_mod(new_steering_angle):
     steer_history[0] = new_steering_angle
     projected_next_steer = (steer_history[0] - steer_history[1]) + steer_history[0]
@@ -51,7 +64,9 @@ def steer_mod(new_steering_angle):
     sys.stdout.write("Adjusting steer to {0:04.3f}\t".format(adjusted_steering_angle*90/3.14*0.872))
     return adjusted_steering_angle
 
-
+'''
+PI controller used for speed control
+'''
 class SimplePIController:
     def __init__(self, Kp, Ki):
         self.Kp = Kp
@@ -74,9 +89,10 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 10# 30.3 #30
-controller.set_desired(set_speed)
 
+# 30.3 is maximum speed at which car will go
+set_speed = 30.3 #25#30.3 #10
+controller.set_desired(set_speed)
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -89,10 +105,13 @@ def telemetry(sid, data):
         speed = data["speed"]
         # The current image from the center camera of the car
         imgString = data["image"]
+
         pil_image = Image.open(BytesIO(base64.b64decode(imgString)))
         image2 = np.asarray(pil_image)
-        ## next line by tony
+
+        ## Added code to modify image sent to prediction
         if use_RGB == False:
+            #this is a bug which I just discovered I had put in - should be RGB2HSV
             image_array = cv2.cvtColor(image2, cv2.COLOR_BGR2HSV_FULL)
             h,s,v = cv2.split(image_array)
             cl_v = clahe.apply(v)
