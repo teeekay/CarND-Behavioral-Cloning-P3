@@ -109,15 +109,23 @@ An Adam optimizer was used with the model.  The initial learning rate and decay 
 
 Callbacks were used at the end of each epoch to checkpoint the model, and to see if the training should be exited early (if evidence of overfitting).  Based on observing good training performance once the model and training data were set up, the early exit was configured to occur if validation loss decreased by less than 0.002 between epochs.
 
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Kerasrun.png?raw=true" alt="Udacity Simulator ready for training" width=600>
+
+<u><i>Figure 2. Graph of Mean Squared Loss for Training and Validation Sets Suggests good Fit</i></u>
 
 
 #### 4. Appropriate training data
+
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Track1center.png?raw=true" alt="Right, Center, and Left views of drive down down center line on Track 1" width=600>
+
 
 I initially attempted to use training data produced by driving around track 1 twice counterclockwise, and once clockwise, trying to stay at the center of the road. 
 
 I produced a set of data for areas of Track 1 where the car was steered away from the edge at sharp angles (and slow speeds) 
 
 I also produced a set of data driving around track 2 (jungle track) several times in both directions at the center of the lane.
+
+<img src="https://github.com/teeekay/CarND-Behavioral-Cloning-P3/blob/master/examples/Trainingexample.png?raw=true" alt="Driving down center line on Track 2" width=300>
 
 
 ### Model Architecture and Training Strategy
@@ -142,7 +150,9 @@ The new model was no better on Track 2.
 
 I began investigating other aspects of the model.  I had seen a blog post by [Mengxi Wu](https://medium.com/@xslittlegrass/self-driving-car-in-a-simulator-with-a-tiny-neural-network-13d33b871234) about using a much smaller model with good results.  I tried switching to just using the Y layer (grayscale), but this did not produce equivalent results.  I reduced the number of planes in the layers to 24 in all the convolutional layers.  This did not make simulator performance any worse.  I then tried reducing the size of the images to 1/4 of the original size.  This significantly reduced training time.  the model performed about the same.
 
-I wanted to see if I could get the model to work better on Track 2.  I got a fresh dataset from track 2 and drove several times around the track in both directions (I was getting better at controlling the simulator).  I trained the model using only the new track 2 dataset (augmented with right and left camera angles and flips of any images with sharper angles).  It crashed right away on Track 2.  However, it performed better than my previous model on Track 1, being able to drive round the entire track at full speed.  This was interesting as it had never seen images from track 1 during training.  
+I wanted to see if I could get the model to work better on Track 2.  I got a fresh dataset from track 2 and drove several times around the track in both directions (I was getting better at controlling the simulator).  I trained the model using only the new track 2 dataset (augmented with right and left camera angles and flips of any images with sharper angles).  The model trained on a total of 63016 samples, and was validated on 15677 samples.  These included 17091 flipped images in the training set.  The model achieved a mse of 0.1024 after 17 epochs when early stopping was triggered.
+
+The car crashed right away when tested on Track 2.  However, it performed better than my previous model on Track 1, being able to drive round the entire track at full speed.  This was interesting as it had never seen images from track 1 during training.  
 
 I worked on implementing a queue-like data structure to hold a recent history of steering angles.  This was used to generate a rough prediction of the next steering angle, and then to produce a weighted average of the steering angle for the current timestep.  This slightly smoothed wobbling of the steering angle between steps, but could not prevent some weaving.  
 
@@ -153,31 +163,4 @@ I realized about this point that the routine I was using to convert the images i
 On track 2 the model moves toward curved trees or fence posts that are straight ahead in a curve, but may look like road features.  It is also fooled by other tracks it can see straight ahead even though the track is veering to the right or left.  To attempt make the model work on track 2, my next course of action would be to investigate if 
 a) other image processing methods -possibly hough/sobel filters could be used in conjunction with the model to better delineate road boundaries and discriminate between road boundaries and other objects like trees and fence posts; b) investigate image transforms to eliminate the effect of shade in Track 2.
 
-
-####3. Creation of the Training Set & Training Process
-
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
-
-![alt text][image2]
-
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
-
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
-
-Then I repeated this process on track two in order to get more data points.
-
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
-
-![alt text][image6]
-![alt text][image7]
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
-
-
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
-
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+### Visualization of MOdel performance
